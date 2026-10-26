@@ -1,0 +1,558 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <!-- Make the application responsive on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Set the browser tab title -->
+    <title>RPG Dice Roller</title>
+
+    <style>
+        /* def colors */
+        :root {
+            --background: #171923;
+            --panel: #222633;
+            --gold: #e6b85c;
+            --text: #f2f0e9;
+            --muted: #a7adbd;
+            --green: #83d6a0;
+            --red: #f09a91;
+            --button: #8c302d;
+        }
+
+        
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px 14px;
+            background: var(--background);
+            color: var(--text);
+            font-family: Arial, sans-serif;
+
+            /* Center the application horizontally */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Limit the application width on larger screens */
+        .app {
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+
+        /* Style the main application heading */
+        h1 {
+            margin: 10px 0 5px;
+            color: var(--gold);
+            font-family: Georgia, serif;
+            font-size: 29px;
+        }
+
+        .subtitle {
+            margin: 0 0 22px;
+            color: var(--muted);
+            font-family: Georgia, serif;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        /* Create the panel containing the dice and bonus selectors */
+        .settings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 18px;
+            background: var(--panel);
+            border-radius: 14px;
+            text-align: left;
+        }
+
+        /* Style labels above the selection controls */
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* Make the dropdown controls comfortable to use on touchscreens */
+        select {
+            width: 100%;
+            min-height: 44px;
+            padding: 8px;
+            border: 1px solid #41485a;
+            border-radius: 8px;
+            background: #171923;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        /* Arrange the advantage and disadvantage options vertically */
+        .modes {
+            margin: 18px 0 8px;
+            padding: 12px 15px;
+            background: var(--panel);
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        /* Make each checkbox easy to tap on an iPhone */
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 43px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .mode-option input {
+            width: 21px;
+            height: 21px;
+            accent-color: var(--green);
+        }
+
+        .advantage {
+            color: var(--green);
+        }
+
+        .disadvantage {
+            color: var(--red);
+        }
+
+        /* Reserve enough space for the animated dice */
+        .dice-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            min-height: 175px;
+            padding: 10px 0;
+        }
+
+        /* Draw each die as a stylized square with rounded corners */
+        .die {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 88px;
+            height: 88px;
+            flex-shrink: 0;
+            border: 3px solid var(--gold);
+            border-radius: 17px;
+            background: #30394d;
+            box-shadow: 4px 5px 0 #0c0e14;
+            color: var(--gold);
+            font-family: Georgia, serif;
+            font-size: 34px;
+            font-weight: bold;
+
+            /* Animate the die when its displayed value changes */
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        /* Highlight the die selected by the game rules */
+        .die.selected {
+            border-color: var(--green);
+            background: #244536;
+            color: var(--green);
+            box-shadow: 0 0 18px #83d6a044;
+        }
+
+        /* Apply a short rolling animation to each die */
+        .die.rolling {
+            animation: shake 0.14s infinite alternate;
+        }
+
+        @keyframes shake {
+            from {
+                transform: rotate(-7deg) translateY(-3px);
+            }
+            to {
+                transform: rotate(7deg) translateY(3px);
+            }
+        }
+
+        /* Style the labels shown below each die */
+        .die-container {
+            width: 100px;
+            text-align: center;
+        }
+
+        .die-caption {
+            min-height: 18px;
+            margin-top: 12px;
+            color: var(--green);
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        /* Display the final total prominently */
+        .result {
+            margin: 0;
+            color: var(--gold);
+            font-family: Georgia, serif;
+            font-size: 28px;
+        }
+
+        /* Display the calculation and individual dice results */
+        .details {
+            min-height: 44px;
+            margin: 10px 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        /* Style the main action button for touchscreen use */
+        .roll-button {
+            width: 100%;
+            min-height: 54px;
+            margin: 10px 0 15px;
+            border: none;
+            border-radius: 10px;
+            background: var(--button);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Change the button appearance when the user presses it */
+        .roll-button:active {
+            transform: scale(0.98);
+            background: #b34237;
+        }
+
+        /* Prevent additional rolls while the animation is running */
+        .roll-button:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        .footer {
+            color: var(--muted);
+            font-family: Georgia, serif;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        /* Adjust spacing for particularly narrow phone screens */
+        @media (max-width: 360px) {
+            .settings {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .die {
+                width: 75px;
+                height: 75px;
+                font-size: 29px;
+            }
+
+            .dice-area {
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="app">
+
+        <!-- Show the application title and subtitle -->
+        <h1>⚔ RPG DICE ⚔</h1>
+        <p class="subtitle">Let fate decide your destiny</p>
+
+        <!-- Let the player choose a die type and a bonus -->
+        <section class="settings">
+            <div class="field">
+                <label for="diceType">SELECT DICE</label>
+
+                <!-- The selected option determines the number of die sides -->
+                <select id="diceType">
+                    <option value="4">1k4</option>
+                    <option value="6">1k6</option>
+                    <option value="8">1k8</option>
+                    <option value="10">1k10</option>
+                    <option value="12">1k12</option>
+                    <option value="20" selected>1k20</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="bonus">ROLL BONUS</label>
+
+                <!-- Allow bonuses from zero to plus five -->
+                <select id="bonus">
+                    <option value="0">+0</option>
+                    <option value="1">+1</option>
+                    <option value="2">+2</option>
+                    <option value="3">+3</option>
+                    <option value="4">+4</option>
+                    <option value="5">+5</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Provide mutually exclusive advantage and disadvantage modes -->
+        <section class="modes">
+
+            <label class="mode-option advantage">
+                <input type="checkbox" id="advantage">
+                <span>Advantage — choose the higher roll</span>
+            </label>
+
+            <label class="mode-option disadvantage">
+                <input type="checkbox" id="disadvantage">
+                <span>Disadvantage — choose the lower roll</span>
+            </label>
+
+        </section>
+
+        <!-- JavaScript will create one or two dice inside this container -->
+        <section class="dice-area" id="diceArea" aria-label="Dice animation">
+        </section>
+
+        <!-- Display the final result and the calculation -->
+        <h2 class="result" id="result" aria-live="polite">
+            Ready to roll?
+        </h2>
+
+        <p class="details" id="details">
+            Choose your dice and bonus.
+        </p>
+
+        <!-- Start the roll animation and calculate the final result -->
+        <button class="roll-button" id="rollButton">
+            ⚄ ROLL THE DICE ⚄
+        </button>
+
+        <!-- Display a decorative footer -->
+        <p class="footer">May fortune favor your heroes!</p>
+
+    </main>
+
+    <script>
+        // Get references to the HTML elements used by the application.
+        const diceType = document.getElementById("diceType");
+        const bonusInput = document.getElementById("bonus");
+        const advantageInput = document.getElementById("advantage");
+        const disadvantageInput = document.getElementById("disadvantage");
+        const diceArea = document.getElementById("diceArea");
+        const resultDisplay = document.getElementById("result");
+        const detailsDisplay = document.getElementById("details");
+        const rollButton = document.getElementById("rollButton");
+
+        // Track whether a roll animation is currently running.
+        let isRolling = false;
+
+        // Ensure that enabling one mode automatically disables the other.
+        advantageInput.addEventListener("change", () => {
+            if (advantageInput.checked) {
+                disadvantageInput.checked = false;
+            }
+        });
+
+        disadvantageInput.addEventListener("change", () => {
+            if (disadvantageInput.checked) {
+                advantageInput.checked = false;
+            }
+        });
+
+        // Return a random integer between one and the selected number of sides.
+        // Both the minimum and maximum values are included.
+        function rollSingleDie(sides) {
+            return Math.floor(Math.random() * sides) + 1;
+        }
+
+        // Create the visual representation of a single die.
+        function createDie(value, selected = false, rolling = false) {
+            const container = document.createElement("div");
+            container.className = "die-container";
+
+            const die = document.createElement("div");
+            die.className = "die";
+
+            // Highlight the selected die and animate dice during a roll.
+            if (selected) {
+                die.classList.add("selected");
+            }
+
+            if (rolling) {
+                die.classList.add("rolling");
+            }
+
+            // Display the current value on the die.
+            die.textContent = value;
+
+            // Label the die that determines the final result.
+            const caption = document.createElement("div");
+            caption.className = "die-caption";
+            caption.textContent = selected ? "SELECTED" : "";
+
+            // Combine the die and its caption into one component.
+            container.appendChild(die);
+            container.appendChild(caption);
+
+            return container;
+        }
+
+        // Render one or two dice depending on the selected game mode.
+        function renderDice(values, selectedIndex = -1, rolling = false) {
+            // Remove the previous dice before rendering the new ones.
+            diceArea.replaceChildren();
+
+            values.forEach((value, index) => {
+                const isSelected = index === selectedIndex;
+
+                // Add the newly created die to the animation area.
+                diceArea.appendChild(
+                    createDie(value, isSelected, rolling)
+                );
+            });
+        }
+
+        // Pause execution between animation frames.
+        // Promises allow the animation to use async/await.
+        function wait(milliseconds) {
+            return new Promise(resolve => {
+                setTimeout(resolve, milliseconds);
+            });
+        }
+
+        // Animate the dice before revealing the actual results.
+        async function animateDice(sides, count, finalValues, selectedIndex) {
+            // Display fourteen animation frames with gradually increasing delays.
+            for (let frame = 0; frame < 14; frame++) {
+                // Generate temporary values for the visual animation.
+                const temporaryValues = Array.from(
+                    { length: count },
+                    () => rollSingleDie(sides)
+                );
+
+                // Show the temporary values while the dice are moving.
+                renderDice(temporaryValues, -1, true);
+
+                // Increase the delay to make the animation slow down naturally.
+                await wait(45 + frame * 12);
+            }
+
+            // Display the real results after the animation has finished.
+            renderDice(finalValues, selectedIndex, false);
+        }
+
+        // Handle the complete dice rolling process.
+        async function rollDice() {
+            // Ignore additional clicks until the current roll is finished.
+            if (isRolling) {
+                return;
+            }
+
+            isRolling = true;
+            rollButton.disabled = true;
+            rollButton.textContent = "ROLLING...";
+
+            // Read the player's selected die type and bonus.
+            const sides = Number(diceType.value);
+            const bonus = Number(bonusInput.value);
+
+            // Determine which game mode is active.
+            let mode = "normal";
+
+            if (advantageInput.checked) {
+                mode = "advantage";
+            } else if (disadvantageInput.checked) {
+                mode = "disadvantage";
+            }
+
+            // Normal mode rolls one die; the other modes roll two dice.
+            const count = mode === "normal" ? 1 : 2;
+
+            // Generate the actual results before starting the animation.
+            const values = Array.from(
+                { length: count },
+                () => rollSingleDie(sides)
+            );
+
+            // Determine which die should be used for the final calculation.
+            let selectedIndex = 0;
+
+            if (mode === "advantage") {
+                selectedIndex = values.indexOf(Math.max(...values));
+            } else if (mode === "disadvantage") {
+                selectedIndex = values.indexOf(Math.min(...values));
+            }
+
+            // Apply the bonus only after selecting the correct die result.
+            const selectedValue = values[selectedIndex];
+            const total = selectedValue + bonus;
+
+            // Update the interface to indicate that a roll is in progress.
+            resultDisplay.textContent = "Fate is being decided...";
+            resultDisplay.style.color = "var(--gold)";
+            detailsDisplay.textContent = "";
+
+            try {
+                // Run the animation and wait until the dice reveal their results.
+                await animateDice(
+                    sides,
+                    count,
+                    values,
+                    selectedIndex
+                );
+
+                // Choose the correct heading and color for the selected mode.
+                let modeText = "NORMAL ROLL";
+                let resultColor = "var(--gold)";
+
+                if (mode === "advantage") {
+                    modeText = "ADVANTAGE";
+                    resultColor = "var(--green)";
+                } else if (mode === "disadvantage") {
+                    modeText = "DISADVANTAGE";
+                    resultColor = "var(--red)";
+                }
+
+                // Display the final total prominently.
+                resultDisplay.textContent = `TOTAL: ${total}`;
+                resultDisplay.style.color = resultColor;
+
+                // Describe the individual dice values.
+                const diceDescription = values.length === 2
+                    ? `Dice rolled: ${values[0]} and ${values[1]}`
+                    : `Die rolled: ${values[0]}`;
+
+                // Explain how the selected value and bonus produced the total.
+                detailsDisplay.textContent =
+                    `${modeText}\n` +
+                    `${diceDescription}\n` +
+                    `Selected: ${selectedValue} + bonus ${bonus} = ${total}`;
+
+            } finally {
+                // Always restore the button after the animation finishes.
+                isRolling = false;
+                rollButton.disabled = false;
+                rollButton.textContent = "⚄ ROLL AGAIN ⚄";
+            }
+        }
+
+        // Connect the roll button to the main rolling function.
+        rollButton.addEventListener("click", rollDice);
+
+        // Show the initial die before the player makes the first roll.
+        renderDice(["?"]);
+    </script>
+</body>
+</html>
